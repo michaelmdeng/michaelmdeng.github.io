@@ -1,5 +1,13 @@
-<footer>
-  <div class="social clearfix">
-    <a class="github icon icon-github" href="https://github.com/michaelmdeng/" target="_blank"></a><a class="linkedin icon icon-linkedin" href="https://www.linkedin.com/in/michaelmdeng/" target="_blank"></a>
-  </div>
+{% if site.theme_settings.footer_text %}
+<footer class="site-footer">
+    <p class="text">{{ site.theme_settings.footer_text }}</p>
+            <div class="footer-icons">
+                <ul>
+                <!-- Social icons from Font Awesome, if enabled -->
+                {% include icons.html %}
+                </ul>
+            </div>
 </footer>
+{% endif %}
+
+
