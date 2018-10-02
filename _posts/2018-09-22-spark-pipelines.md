@@ -16,7 +16,7 @@ I've been wondering if there was a more expressive way to write these ETL pipeli
 that made them not only easier to understand, but also easier to test and componentize.
 Let's start with a quick example of what I'm trying to address.
 
-```
+{% highlight scala linenos %}
 def main(args: Array[String]): Unit = {
   val spark: SparkSession = // get a SparkSession
 
@@ -26,7 +26,7 @@ def main(args: Array[String]): Unit = {
 
   c.write(args, ...) // and so on...
 }
-```
+{% endhighlight %}
 
 This main method describes a Spark job that reads in an input dataset, applies a couple
 of transformations to it, and the writes the output. This, of course, is a simplified
@@ -73,7 +73,7 @@ we can express each of our transformations as functions and make the dependence 
 by passing the environment in as an argument. With this in mind, we can rewrite our Spark
 program as:
 
-```
+{% highlight scala linenos %}
 def main(args: Array[String]): Unit = {
   val myEnv: Environment = // create this from the SparkSession, args, etc.
 
@@ -87,7 +87,7 @@ def main(args: Array[String]): Unit = {
   val c: C = cTransform(myEnv, a, b)
   writeTransform(myEnv, c)
 }
-```
+{% endhighlight %}
 
 By expressing each transformation as a function, we've made progress in two important
 ways.
@@ -109,10 +109,10 @@ Some of you may have already recognized this form of dependency injection as a `
 monad. **_A `Reader` wraps an anonymous function_** and takes two typed parameters, one
 representing the input type and the other representing the output type.
 
-```
+{% highlight scala linenos %}
 val f: A => B = // a function that transforms an A to a B
 val reader: Reader[A, B] = Reader.apply(f)
-```
+{% endhighlight %}
 
 You can apply the anonymous function just by calling the `run` method:
 `reader.run(a)`.
@@ -120,22 +120,22 @@ You can apply the anonymous function just by calling the `run` method:
 The `Reader` also exposes a helpful method `ask`, which wraps an anonymous function that
 just returns the input. This means the following two statements are equivalent.
 
-```
+{% highlight scala linenos %}
 reader.ask
 Reader.apply(a => a)
-```
+{% endhighlight %}
 
 What have we gained by wrapping our anonymous function inside the `Reader`?  The `Reader`
 is useful because it is a **_monad_** and can be chained using map/flatMap and for/yield
 syntax.
 
-```
+{% highlight scala linenos %}
 val aFcn: A => B = a => getB(a)
 val reader = Reader[A, B](aFcn)
 
 val bFcn: B => C = b => getB(b)
 val chainedReader = for (b <- reader) yield (bFcn(b))
-```
+{% endhighlight %}
 
 The `chainedReader` value wraps an anonymous function that converts an input of type `A`
 into an output of type `C`. Calling `chainedReader.run(a)` will first call `aFcn` to
@@ -149,7 +149,7 @@ input to some of the transformations.
 
 Let's try rewriting our Spark ETL job as a series of chained `Reader` monads.
 
-```
+{% highlight scala linenos %}
 def main(args: Array[String]): Unit = {
   val aReader: Reader[Environment, A] =
     Reader(env: Environment => env.spark.read(env.args, ...))
@@ -181,7 +181,7 @@ def main(args: Array[String]): Unit = {
   val env: Environment = // create this from the SparkSession, args, etc.
   writeReader.run(env)
 }
-```
+{% endhighlight %}
 
 Using the `Reader`, we've managed to keep the explicit dependency on the environment and
 the componentization of the transforms, while making the code more readable and require
@@ -201,14 +201,18 @@ You may recognize the `Reader` monad as an instance of a `Kleisli`. The `Kleisli
 similar to the `Reader` except it also allows you to wrap the output of the anonymous
 function in another type as well.
 
-`val kleisli = Kleisli[F[_], A, B](f: A => F[B])`
+{% highlight scala linenos %}
+val kleisli = Kleisli[F[_], A, B](f: A => F[B])
+{% endhighlight %}
 
 If you're not interested in wrapping your output type, you just wrap it in the `Id` type
 (which stands for identity).
 
-`Kleisli[Id, A, B] = Reader[A, B]`
+{% highlight scala linenos %}
+Kleisli[Id, A, B] = Reader[A, B]
+{% endhighlight %}
 
-```
+{% highlight scala linenos %}
 def main(args: Array[String]): Unit = {
   val aKleisli: Kleisli[Id, Environment, A] =
     Kleisli(env: Environment => env.spark.read(env.args, ...))
@@ -240,7 +244,7 @@ def main(args: Array[String]): Unit = {
   val env: Environment = // create this from the SparkSession, args, etc.
   writeKleisli.run(env)
 }
-```
+{% endhighlight %}
 
 # Getting abstract
 
@@ -270,7 +274,7 @@ Let's finish off by taking a closer look at what happens exactly when the `Kleis
 run. We can start by remembering that for/yield is just syntactic sugar for map/flatMap
 calls. Here's what our code looks like as maps and flatMaps.
 
-```
+{% highlight scala linenos %}
 def main(args: Array[String]): Unit = {
   val aKleisli: Kleisli[Id, Environment, A] =
     Kleisli[Id, Environment, A](env: Environment => env.spark.read(env.args, ...))
@@ -297,13 +301,13 @@ def main(args: Array[String]): Unit = {
   val env: Environment = // create this from the SparkSession, args, etc.
   writeKleisli.run(env)
 }
-```
+{% endhighlight %}
 
 Finally, let's take a closer look at the `writeReader`, and see what happens
 when we `run` it. We can perform a variable substition for all the previous
 steps of the pipeline to get a single `run` statement.
 
-```
+{% highlight scala linenos %}
 val writeKleisli =
   Kleisli[Id, Environment, A](env: Environment => env.spark.read(env.args, ...))
     .flatMap(a => {
@@ -322,7 +326,7 @@ val writeKleisli =
 
 val env: Environment = // create this from the SparkSession, args, etc.
 writeKleisli.run(env)
-```
+{% endhighlight %}
 
 When we translate the code to map/flatMap calls, we can see the linear progression of the
 code. First, `a` is generated, then `a` is generated again in order to generate `b`, then

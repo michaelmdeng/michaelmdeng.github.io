@@ -27,9 +27,9 @@ indicating whether or not the operation was a success, as well as having the abi
 throw exceptions on more catastrophic errors. A typical function signature might look
 something like:
 
-```
+{% highlight java linenos %}
 boolean doSomethingInADLS(...) throws IOException, ADLException
-```
+{% endhighlight %}
 
 This makes it a little tricky to safely deal with both _result failures_ (calls that return
 false) and _exception failures_ (calls that throw). Typical object-oriented code will
@@ -50,7 +50,7 @@ rename, we will need to:
 
 Some code for this rename (with simplified method/variable names) might look like:
 
-```
+{% highlight scala linenos %}
 val deleteSuccessful = false
 val folderSuccessful = false
 val renameSuccessful = false
@@ -82,7 +82,7 @@ try {
 
   // we made it!
 }
-```
+{% endhighlight %}
 
 Many of you may recognize this [exception hell](https://philipnilsson.github.io/Badness10k/escaping-hell-with-monads).
 
@@ -112,7 +112,7 @@ favorite `for..yield` or `map/flatMap` syntax.
 
 So let's wrap some of these ADLS calls in a Try and see what happens!
 
-```
+{% highlight scala linenos %}
 for {
   result1 <- Try(doSomethingInADLS())
   result2 <- Try(doSomethingElseInADLS(result1))
@@ -120,7 +120,7 @@ for {
 } yield {
   result4 <- Try(finishSomethingInADLS(result2, result3))
 }
-```
+{% endhighlight %}
 
 However, based on the design of the ADLS SDK, this code won't work correctly. We are
 wrapping each ADLS action in a `Try`, resulting in a `Success[Boolean]` if the ADLS call
@@ -139,11 +139,11 @@ result value that will be wrapped up by our `Try`, since it should always wrap `
 because the previous call succeeded. This means we can change the output type of our ADLS
 computations from `Try[Boolean]` to `Try[Unit]`.
 
-```
+{% highlight scala linenos %}
 def successAndTrue(tryResult: Try[Boolean]): Try[Unit] = {
   tryResult.filter(result => result)
 }
-```
+{% endhighlight %}
 
 Ahh... much better.
 
@@ -155,7 +155,7 @@ return a `Success(())`, and any outcomes that represent a failure will return a
 Now let's try our renaming our file using the `Try` type combined with this result-based
 error handling.
 
-```
+{% highlight scala linenos %}
 Try(fileExists(destination)).flatMap(exists => {
   if (exists) successAndTrue(Try(deleteFile(destination)))
   else Success(())
@@ -167,7 +167,7 @@ Try(fileExists(destination)).flatMap(exists => {
 }).flatMap(unit => {
   successAndTrue(Try(rename(source, destination)))
 })
-```
+{% endhighlight %}
 
 This operation returns a `Try[Unit]` value that represents whether or not the entire rename
 operation succeeded or failed. If it failed at any point during the rename process, all
@@ -181,12 +181,12 @@ Using the `Try`, we've combined our _result failure_ and _exception failure_ mod
 single mode of failure, the `Failure[Exception]`. We could have achieved the same result
 by making sure to throw an `Exception` on each false call, like:
 
-```
+{% highlight scala linenos %}
 if (!doSomethingInADLS())
   throw new Exception(...)
 else
   // continue with the next
-```
+{% endhighlight %}
 
 And while the distinction may seem trivial, it is powerful for a developer to only have
 to deal with possible failures in a single location, instead of throughout an entire code
@@ -197,7 +197,7 @@ handling. For example, the following snippet outlines two different methods of e
 handling - the first is similar to what we did in the original example, and the second
 simply logs everything and continues execution.
 
-```
+{% highlight scala linenos %}
 val tryRename = // the value from Try call
 
 // recover normally
@@ -219,4 +219,4 @@ tryRename.recover(unit => {
     log.error(e.getMessage())
   })
 })
-```
+{% endhighlight %}
