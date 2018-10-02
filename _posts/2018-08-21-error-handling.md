@@ -18,7 +18,7 @@ the native file system operations to rename the table created in step 1 to the c
 final location. This can be done using the ADLS SDK, at the cost of further coupling the
 Spark jobs with the underlying native file system.
 
-## But is it functional?
+# But is it functional?
 
 It has been even more interesting incorporating this third-party library into an existing
 Scala codebase that is largely functional in nature. In contrast, the ADKS Java library
@@ -98,7 +98,7 @@ becomes hard to remember that these exceptions are caught at this level. Once ag
 developers that want to handle errors at a different level in the stack will have to
 duplicate this code in some way.
 
-## Error handling with `Try`
+# Error handling with `Try`
 
 When I saw the way the ADLS library worked, I wanted to see how to make it conform the
 the functional paradigm of a lot of our existing code.
@@ -131,7 +131,7 @@ value will continue as though the previous call succeeded, even though it actual
 didn't.  This means that there is not a 1-to-1 correspondence between what the ADLS
 library considers a failure and what we will return as a `Failure` in our code.
 
-## Trying harder
+# Trying harder
 
 In order to fix this issue, we need transform any `Try` to make sure a `Success(false)`
 actually becomes `Failure[Throwable]`. When we do this, we no longer care about the
@@ -175,7 +175,7 @@ subsequent computation will be stopped and the relevant error will be returned i
 `Failure`, without an ugly `try catch` clause. Best of all, any calling methods can
 examine the specific failure that occurred and choose to handle it in any way they want.
 
-## A smooth recovery
+# A smooth recovery
 
 Using the `Try`, we've combined our _result failure_ and _exception failure_ modes into a
 single mode of failure, the `Failure[Exception]`. We could have achieved the same result

@@ -1,7 +1,7 @@
 ---
 layout: page
 title: About
-permalink: /about/
+description: About the site
 ---
 
-Welcome to *East of Northwest*.
+Welcome to East of Northwest.
